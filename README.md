@@ -41,6 +41,9 @@ end
 
 ## Usage
 
+Snippets below contain sample usage in both Erlang and Elixir, and cover most of the small
+API space offered by `msglocks`. For a more complete example, scroll down!
+
 ### Erlang
 
 ```erlang
@@ -112,9 +115,9 @@ iex(7)> end)
 ## Examples
 
 This example is in Elixir, but it should be fairly understandable for those coming from
-both languages. It contains a counter that's global to the entire runtime, which creates
-itself on the first call. This is useful because all applications using this counter would
-increment atomically, even if they're not explicitly linked directly.
+both languages. It simply spawns 6 processes which each attempt to hold a lock for 10
+seconds. As the lock is created with only 2 slots, this runs for 30 seconds and 2 of our
+spawned tasks can hold the lock at any given time.
 
 ```elixir
 # First create a new lock, with 2 slots only
@@ -134,3 +137,4 @@ for idx <- 1..6 do
   end)
 end
 ```
+
