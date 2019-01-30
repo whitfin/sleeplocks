@@ -17,30 +17,30 @@
 -export([init/1, handle_call/3]).
 
 %% Record definition for internal use.
--record(lock, {slots, current, waiting}).
+-record(lock, {slots, current=#{}, waiting=queue:new()}).
 
 %% ===================================================================
 %% Public API
 %% ===================================================================
 
-%% @doc Creates a new lock with `Max` slots.
+%% @doc Creates a new lock with `Slots` concurrency factor.
 -spec new(pos_integer()) ->
     {ok, pid()} | ignore | {error, term()}.
-new(Max) ->
-    new(Max, []).
+new(Slots) ->
+    new(Slots, []).
 
-%% @doc Creates a new lock with `Max` slots.
+%% @doc Creates a new lock with `Slots` concurrency factor.
 -spec new(pos_integer(), list()) ->
     {ok, pid()} | ignore | {error, term()}.
-new(Max, Args) when
-    is_number(Max),
+new(Slots, Args) when
+    is_number(Slots),
     is_list(Args)
 ->
     case proplists:get_value(name, Args) of
         undefined ->
-            gen_server:start_link(?MODULE, Max, []);
+            gen_server:start_link(?MODULE, Slots, []);
         Name ->
-            gen_server:start_link(Name, ?MODULE, Max, [])
+            gen_server:start_link(Name, ?MODULE, Slots, [])
     end.
 
 %% @doc Acquires a lock for the current process.
@@ -87,8 +87,8 @@ release(Ref) ->
 %%====================================================================
 
 %% Initialization phase.
-init(Max) ->
-    {ok, {Max, #{}, queue:new()}}.
+init(Slots) ->
+    {ok, #lock{slots = Slots}}.
 
 %% Handles a lock acquisition (blocks until one is available).
 handle_call(acquire, Caller, #lock{waiting = Waiting} = Lock) ->
