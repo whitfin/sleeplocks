@@ -16,6 +16,9 @@
 -export([new/1, new/2, acquire/1, attempt/1, execute/2, release/1]).
 -export([init/1, handle_call/3]).
 
+%% Record definition for internal use.
+-record(lock, {slots, current, waiting}).
+
 %% ===================================================================
 %% Public API
 %% ===================================================================
@@ -88,58 +91,59 @@ init(Max) ->
     {ok, {Max, #{}, queue:new()}}.
 
 %% Handles a lock acquisition (blocks until one is available).
-handle_call(acquire, Caller, {Max, Locks, Buffer} = State) ->
-    case try_lock(Caller, State) of
-        {ok, NewState} ->
-            {reply, ok, NewState};
+handle_call(acquire, Caller, #lock{waiting = Waiting} = Lock) ->
+    case try_lock(Caller, Lock) of
+        {ok, NewLock} ->
+            {reply, ok, NewLock};
         {error, unavailable} ->
-            {noreply, {Max, Locks, queue:snoc(Buffer, Caller)}}
+            {noreply, Lock#lock{waiting = queue:snoc(Waiting, Caller)}}
     end;
 
 %% Handles an attempt to acquire a lock.
-handle_call(attempt, Caller, State) ->
-    case try_lock(Caller, State) of
-        {ok, NewState} ->
-            {reply, ok, NewState};
+handle_call(attempt, Caller, Lock) ->
+    case try_lock(Caller, Lock) of
+        {ok, NewLock} ->
+            {reply, ok, NewLock};
         {error, unavailable} = E ->
-            {reply, E, State}
+            {reply, E, Lock}
     end;
 
 %% Handles the release of a previously acquired lock.
-handle_call(release, {From, _Ref}, {Max, Locks, Buffer} = State) ->
-    NewState = case maps:take(From, Locks) of
-        {ok, NewLocks} ->
-            next_caller({Max, NewLocks, Buffer});
+handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
+    NewLock = case maps:take(From, Current) of
+        {ok, NewCurrent} ->
+            next_caller(Lock#lock{current = NewCurrent});
         error ->
-            State
+            Lock
     end,
-    {reply, ok, NewState}.
+    {reply, ok, NewLock}.
 
 %%====================================================================
 %% Private functions
 %%====================================================================
 
 %% Locks a caller in the internal locks map.
-lock_caller({From, _Ref}, Locks) ->
-    maps:put(From, ok, Locks).
+lock_caller({From, _Ref}, #lock{current = Current} = Lock) ->
+    Lock#lock{current = maps:put(From, ok, Current)}.
 
 %% Attempts to pass a lock to a waiting caller.
-next_caller({Max, Locks, Buffer} = State) ->
-    case queue:out(Buffer) of
+next_caller(#lock{waiting = Waiting} = Lock) ->
+    case queue:out(Waiting) of
         {empty, {[], []}} ->
-            State;
-        {{value, Next}, NewBuffer} ->
+            Lock;
+        {{value, Next}, NewWaiting} ->
             gen_server:reply(Next, ok),
-            {Max, lock_caller(Next, Locks), NewBuffer}
+            NewLock = lock_caller(Next, Lock),
+            NewLock#lock{waiting = NewWaiting}
     end.
 
 %% Attempts to acquire a lock for a calling process
-try_lock(Caller, {Max, Locks, Buffer}) ->
-    case maps:size(Locks) of
-        S when S == Max ->
+try_lock(Caller, #lock{slots = Slots, current = Current} = Lock) ->
+    case maps:size(Current) of
+        S when S == Slots ->
             {error, unavailable};
         _ ->
-            {ok, {Max, lock_caller(Caller, Locks), Buffer}}
+            {ok, lock_caller(Caller, Lock)}
     end.
 
 %% ===================================================================
