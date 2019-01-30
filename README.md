@@ -35,7 +35,7 @@ Hex (shown at the top of this README).
 
 ```elixir
 def deps do
-  [{:sleeplocks, "~> 0.1"}]
+  [{:sleeplocks, "~> 1.0"}]
 end
 ```
 
