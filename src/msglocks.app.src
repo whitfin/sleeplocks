@@ -1,0 +1,9 @@
+{application, msglocks,
+  [{description, "BEAM friendly spinlocks for Elixir/Erlang"},
+   {vsn, "0.1.0"},
+   {modules, []},
+   {registered, []},
+   {applications, [kernel, stdlib]},
+   {maintainers, ["Isaac Whitfield"]},
+   {licenses, ["MIT"]},
+   {links, [{"Github", "https://github.com/whitfin/msglocks"}]}]}.

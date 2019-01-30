@@ -1,0 +1,6 @@
+/_build
+/.rebar
+/.rebar3
+/doc
+/ebin
+*.crashdump
