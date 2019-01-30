@@ -23,13 +23,13 @@
 %% Public API
 %% ===================================================================
 
-%% @doc Creates a new lock with `Slots` concurrency factor.
+%% @doc Creates a new lock with a provided concurrency factor.
 -spec new(pos_integer()) ->
     {ok, pid()} | ignore | {error, term()}.
 new(Slots) ->
     new(Slots, []).
 
-%% @doc Creates a new lock with `Slots` concurrency factor.
+%% @doc Creates a new lock with a provided concurrency factor.
 -spec new(pos_integer(), list()) ->
     {ok, pid()} | ignore | {error, term()}.
 new(Slots, Args) when
