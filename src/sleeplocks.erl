@@ -9,7 +9,7 @@
 %%
 %% All of this is done in a simple Erlang process so there's
 %% very little dependency, and management is extremely simple.
--module(msglocks).
+-module(sleeplocks).
 -compile(inline).
 
 %% Public API

@@ -1,5 +1,5 @@
-# msglocks
-[![Build Status](https://img.shields.io/travis/whitfin/msglocks.svg?label=unix)](https://travis-ci.org/whitfin/msglocks) [![Hex.pm Version](https://img.shields.io/hexpm/v/msglocks.svg)](https://hex.pm/packages/msglocks) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/msglocks/)
+# sleeplocks
+[![Build Status](https://img.shields.io/travis/whitfin/sleeplocks.svg?label=unix)](https://travis-ci.org/whitfin/sleeplocks) [![Hex.pm Version](https://img.shields.io/hexpm/v/sleeplocks.svg)](https://hex.pm/packages/sleeplocks) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/sleeplocks/)
 
 This library is designed to provide simple locking mechanisms in Erlang/Elixir, similar to
 how spinlocks work in other languages - except using messages to communicate locking.
@@ -21,9 +21,9 @@ Rebar setup to use Hex as a dependency source, then you can grab it directly:
 ```erlang
 {deps,[
   % pulls the latest version
-  msglocks,
+  sleeplocks,
   % to pull the latest version from github
-  {msglocks, {git, "git://github.com/whitfin/msglocks.git"}}
+  {sleeplocks, {git, "git://github.com/whitfin/sleeplocks.git"}}
 ]}.
 ```
 
@@ -35,44 +35,44 @@ Hex (shown at the top of this README).
 
 ```elixir
 def deps do
-  [{:msglocks, "~> 0.1"}]
+  [{:sleeplocks, "~> 0.1"}]
 end
 ```
 
 ## Usage
 
 Snippets below contain sample usage in both Erlang and Elixir, and cover most of the small
-API space offered by `msglocks`. For a more complete example, scroll down!
+API space offered by `sleeplocks`. For a more complete example, scroll down!
 
 ### Erlang
 
 ```erlang
 % create a new single lock (with a name)
-1> msglocks:new(1, [{name, {local, my_lock}}]).
+1> sleeplocks:new(1, [{name, {local, my_lock}}]).
 {ok,<0.179.0>}
 
 % take ownership of the lock
-2> msglocks:acquire(my_lock).
+2> sleeplocks:acquire(my_lock).
 ok
 
 % release the current hold on a lock
-3> msglocks:release(my_lock).
+3> sleeplocks:release(my_lock).
 ok
 
 % attempt to acquire a lock (which will succeed)
-4> msglocks:attempt(my_lock).
+4> sleeplocks:attempt(my_lock).
 ok
 
 % now that it's taken, other attempts will fail
-5> msglocks:attempt(my_lock).
+5> sleeplocks:attempt(my_lock).
 {error,unavailable}
 
 % release the lock again
-6> msglocks:release(my_lock).
+6> sleeplocks:release(my_lock).
 ok
 
 % handle acquisition and locking automatically
-7> msglocks:execute(my_lock, fun() ->
+7> sleeplocks:execute(my_lock, fun() ->
 7>   3
 7> end).
 3
@@ -82,31 +82,31 @@ ok
 
 ```elixir
 # create a new single lock (with a name)
-iex(1)> :msglocks,new(1, [ name: :my_lock ])
+iex(1)> :sleeplocks,new(1, [ name: :my_lock ])
 {:ok, #PID<0.179.0>}
 
 # take ownership of the lock
-iex(2)> :msglocks.acquire(:my_lock)
+iex(2)> :sleeplocks.acquire(:my_lock)
 :ok
 
 # release the current hold on a lock
-iex(3)> :msglocks.release(:my_lock)
+iex(3)> :sleeplocks.release(:my_lock)
 :ok
 
 # attempt to acquire a lock (which will succeed)
-iex(4)> :msglocks.attempt(:my_lock)
+iex(4)> :sleeplocks.attempt(:my_lock)
 :ok
 
 # now that it's taken, other attempts will fail
-iex(5)> :msglocks.attempt(:my_lock)
+iex(5)> :sleeplocks.attempt(:my_lock)
 {:error, :unavailable}
 
 # release the lock again
-iex(6)> :msglocks.release(:my_lock)
+iex(6)> :sleeplocks.release(:my_lock)
 :ok
 
 % handle acquisition and locking automatically
-iex(7)> :msglocks.execute(:my_lock, fn ->
+iex(7)> :sleeplocks.execute(:my_lock, fn ->
 iex(7)>   3
 iex(7)> end)
 3
@@ -121,7 +121,7 @@ spawned tasks can hold the lock at any given time.
 
 ```elixir
 # First create a new lock, with 2 slots only
-{:ok, ref} = :msglocks.new(2)
+{:ok, ref} = :sleeplocks.new(2)
 
 # Then spawn 6 tasks, which each just sleep for 10 seconds
 # after acquiring the lock. This means that 2 processes will
@@ -129,7 +129,7 @@ spawned tasks can hold the lock at any given time.
 # will repeat 3 times (6 / 2) until 30 seconds are up.
 for idx <- 1..6 do
   Task.start(fn ->
-    :msglocks.execute(ref, fn ->
+    :sleeplocks.execute(ref, fn ->
       IO.puts("Locked #{idx}")
       Process.sleep(10_000)
       IO.puts("Releasing #{idx}")
