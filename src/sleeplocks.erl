@@ -140,11 +140,11 @@ handle_call(attempt, Caller, Lock) ->
 %% @hidden
 %% Handles the release of a previously acquired lock.
 handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
-    NewLock = case maps:take(From, Current) of
-        {ok, NewCurrent} ->
-            next_caller(Lock#lock{current = NewCurrent});
-        error ->
-            Lock
+    NewLock = case maps:is_key(From, Current) of
+        false -> Lock;
+        true  ->
+            NewCurrent = maps:remove(From, Current),
+            next_caller(Lock#lock{current = NewCurrent})
     end,
     {reply, ok, NewLock}.
 
