@@ -1,4 +1,5 @@
-%% @doc BEAM friendly spinlocks for Elixir/Erlang.
+%% @doc
+%% BEAM friendly spinlocks for Elixir/Erlang.
 %%
 %% This module provides a very simple API for managing locks
 %% inside a BEAM instance. It's modeled on spinlocks, but works
@@ -14,24 +15,37 @@
 
 %% Public API
 -export([new/1, new/2, acquire/1, attempt/1, execute/2, release/1]).
--export([init/1, handle_call/3]).
+-export([init/1, handle_call/3, start_link/1, start_link/2]).
 
 %% Record definition for internal use.
 -record(lock, {slots, current=#{}, waiting=queue:new()}).
+
+%% Inlining for convenience functions.
+-compile({inline, [new/1, start_link/1, start_link/2]}).
+
+%% Name references available to call a lock.
+-type name() ::
+    atom() |
+    {local, Name :: atom()} |
+    {global, GlobalName :: any()} |
+    {via, Module :: atom(), ViaName :: any()}.
+
+%% Startup call return types to pass back through.
+-type start_ret() :: {ok, pid()} | ignore | {error, term()}.
 
 %% ===================================================================
 %% Public API
 %% ===================================================================
 
-%% @doc Creates a new lock with a provided concurrency factor.
--spec new(pos_integer()) ->
-    {ok, pid()} | ignore | {error, term()}.
+%% @doc
+%% Creates a new lock with a provided concurrency factor.
+-spec new(Slots :: pos_integer()) -> start_ret().
 new(Slots) ->
     new(Slots, []).
 
-%% @doc Creates a new lock with a provided concurrency factor.
--spec new(pos_integer(), list()) ->
-    {ok, pid()} | ignore | {error, term()}.
+%% @doc
+%% Creates a new lock with a provided concurrency factor.
+-spec new(Slots :: pos_integer(), Args :: list()) -> start_ret().
 new(Slots, Args) when
     is_number(Slots),
     is_list(Args)
@@ -39,35 +53,35 @@ new(Slots, Args) when
     case proplists:get_value(name, Args) of
         undefined ->
             gen_server:start_link(?MODULE, Slots, []);
+        Name when is_atom(Name) ->
+            gen_server:start_link({local, Name}, ?MODULE, Slots, []);
         Name ->
             gen_server:start_link(Name, ?MODULE, Slots, [])
     end.
 
-%% @doc Acquires a lock for the current process.
+%% @doc
+%% Acquires a lock for the current process.
 %%
 %% This will block until a lock can be acquired.
--spec acquire(ServerName) -> ok when
-    ServerName :: {local, atom()} | {global, term()} | {via, atom(), term()}.
+-spec acquire(Name :: name()) -> ok.
 acquire(Ref) ->
     gen_server:call(Ref, acquire, infinity).
 
-%% @doc Attempts to acquire a lock for the current process.
+%% @doc
+%% Attempts to acquire a lock for the current process.
 %%
 %% In the case there are no slots available, an error will be
 %% returned immediately rather than waiting.
--spec attempt(ServerName) -> Result when
-    ServerName :: {local, atom()} | {global, term()} | {via, atom(), term()},
-    Result :: ok | {error, unavailable}.
+-spec attempt(Name :: name()) -> ok | {error, unavailable}.
 attempt(Ref) ->
     gen_server:call(Ref, attempt).
 
-%% @doc Executes a function when a lock can be acquired.
+%% @doc
+%% Executes a function when a lock can be acquired.
 %%
 %% The lock is automatically released after the function has
 %% completed execution; there's no need to manually release.
--spec execute(ServerName, Exec) -> ok when
-    ServerName :: {local, atom()} | {global, term()} | {via, atom(), term()},
-    Exec :: fun(() -> any()).
+-spec execute(Name :: name(), Exec :: fun(() -> any())) -> ok.
 execute(Ref, Fun) ->
     acquire(Ref),
     try Fun() of
@@ -76,20 +90,34 @@ execute(Ref, Fun) ->
         release(Ref)
     end.
 
-%% @doc Releases a lock held by the current process.
--spec release(ServerName) -> ok when
-    ServerName :: {local, atom()} | {global, term()} | {via, atom(), term()}.
+%% @doc
+%% Releases a lock held by the current process.
+-spec release(Name :: name()) -> ok.
 release(Ref) ->
     gen_server:call(Ref, release).
+
+%% @hidden
+%% Aliasing for Elixir interoperability.
+-spec start_link(Slots :: pos_integer()) -> start_ret().
+start_link(Slots) ->
+    new(Slots).
+
+%% @hidden
+%% Aliasing for Elixir interoperability.
+-spec start_link(Slots :: pos_integer(), Args :: list()) -> start_ret().
+start_link(Slots, Args) ->
+    new(Slots, Args).
 
 %%====================================================================
 %% Callback functions
 %%====================================================================
 
+%% @hidden
 %% Initialization phase.
 init(Slots) ->
     {ok, #lock{slots = Slots}}.
 
+%% @hidden
 %% Handles a lock acquisition (blocks until one is available).
 handle_call(acquire, Caller, #lock{waiting = Waiting} = Lock) ->
     case try_lock(Caller, Lock) of
@@ -99,6 +127,7 @@ handle_call(acquire, Caller, #lock{waiting = Waiting} = Lock) ->
             {noreply, Lock#lock{waiting = queue:snoc(Waiting, Caller)}}
     end;
 
+%% @hidden
 %% Handles an attempt to acquire a lock.
 handle_call(attempt, Caller, Lock) ->
     case try_lock(Caller, Lock) of
@@ -108,6 +137,7 @@ handle_call(attempt, Caller, Lock) ->
             {reply, E, Lock}
     end;
 
+%% @hidden
 %% Handles the release of a previously acquired lock.
 handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
     NewLock = case maps:take(From, Current) of
