@@ -14,8 +14,8 @@
 -compile(inline).
 
 %% Public API
--export([new/1, new/2, acquire/1, attempt/1, execute/2, release/1]).
--export([init/1, handle_call/3, start_link/1, start_link/2]).
+-export([new/1, new/2, acquire/1, attempt/1, execute/2, release/1, start_link/1, start_link/2]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% Record definition for internal use.
 -record(lock, {slots, current=#{}, waiting=queue:new()}).
@@ -147,6 +147,26 @@ handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
             Lock
     end,
     {reply, ok, NewLock}.
+
+%% @hidden
+%% Empty shim to implement behaviour.
+handle_cast(_Msg, Lock) ->
+    {noreply, Lock}.
+
+%% @hidden
+%% Empty shim to implement behaviour.
+handle_info(_Msg, Lock) ->
+    {noreply, Lock}.
+
+%% @hidden
+%% Empty shim to implement behaviour.
+terminate(_Reason, _Lock) ->
+    ok.
+
+%% @hidden
+%% Empty shim to implement behaviour.
+code_change(_Vsn, Lock, _Extra) ->
+    {ok, Lock}.
 
 %%====================================================================
 %% Private functions
