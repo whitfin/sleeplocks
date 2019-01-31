@@ -1,6 +1,6 @@
 {application, sleeplocks,
   [{description, "BEAM friendly spinlocks for Elixir/Erlang"},
-   {vsn, "1.1.0"},
+   {vsn, "1.1.1"},
    {modules, []},
    {registered, []},
    {applications, [kernel, stdlib]},
