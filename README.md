@@ -82,7 +82,7 @@ ok
 
 ```elixir
 # create a new single lock (with a name)
-iex(1)> :sleeplocks,new(1, [ name: :my_lock ])
+iex(1)> :sleeplocks.new(1, [ name: :my_lock ])
 {:ok, #PID<0.179.0>}
 
 # take ownership of the lock
