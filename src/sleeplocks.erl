@@ -81,7 +81,7 @@ attempt(Ref) ->
 %%
 %% The lock is automatically released after the function has
 %% completed execution; there's no need to manually release.
--spec execute(Name :: name(), Exec :: fun(() -> any())) -> ok.
+-spec execute(Name :: name(), Exec :: fun(() -> any())) -> any().
 execute(Ref, Fun) ->
     acquire(Ref),
     try Fun() of
