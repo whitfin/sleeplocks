@@ -22,4 +22,4 @@ jobs:
     - name: Compile
       run: rebar3 compile
     - name: Run tests
-      run: rebar3 do eunit, ct
+      run: rebar3 do eunit
