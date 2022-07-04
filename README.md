@@ -105,7 +105,7 @@ iex(5)> :sleeplocks.attempt(:my_lock)
 iex(6)> :sleeplocks.release(:my_lock)
 :ok
 
-% handle acquisition and locking automatically
+# handle acquisition and locking automatically
 iex(7)> :sleeplocks.execute(:my_lock, fn ->
 iex(7)>   3
 iex(7)> end)
