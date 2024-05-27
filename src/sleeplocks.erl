@@ -143,6 +143,8 @@ handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
     NewLock = case maps:is_key(From, Current) of
         false -> Lock;
         true  ->
+            {MonitorRef, NewCurrent} = maps:take(From, Current),
+            erlang:demonitor(MonitorRef),
             NewCurrent = maps:remove(From, Current),
             next_caller(Lock#lock{current = NewCurrent})
     end,
@@ -152,6 +154,11 @@ handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
 %% Empty shim to implement behaviour.
 handle_cast(_Msg, Lock) ->
     {noreply, Lock}.
+
+%% @hidden
+%% Handles releasing locks if owners crash.
+handle_info({'DOWN', _Ref, process, Pid, _Reason}, #lock{current = Current} = Lock) ->
+    {noreply, Lock#lock{current = maps:remove(Pid, Current)}};
 
 %% @hidden
 %% Empty shim to implement behaviour.
@@ -174,7 +181,8 @@ code_change(_Vsn, Lock, _Extra) ->
 
 %% Locks a caller in the internal locks map.
 lock_caller({From, _Ref}, #lock{current = Current} = Lock) ->
-    Lock#lock{current = maps:put(From, ok, Current)}.
+    Monitor = erlang:monitor(process, From),
+    Lock#lock{current = maps:put(From, Monitor, Current)}.
 
 %% Attempts to pass a lock to a waiting caller.
 next_caller(#lock{waiting = Waiting} = Lock) ->
