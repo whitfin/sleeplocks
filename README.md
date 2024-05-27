@@ -1,5 +1,5 @@
 # sleeplocks
-[![Build Status](https://img.shields.io/github/workflow/status/whitfin/sleeplocks/CI)](https://github.com/whitfin/sleeplocks/actions) [![Hex.pm Version](https://img.shields.io/hexpm/v/sleeplocks.svg)](https://hex.pm/packages/sleeplocks) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/sleeplocks/)
+[![Build Status](https://img.shields.io/github/workflow/status/whitfin/sleeplocks/ci.yml?branch=main)](https://github.com/whitfin/sleeplocks/actions) [![Hex.pm Version](https://img.shields.io/hexpm/v/sleeplocks.svg)](https://hex.pm/packages/sleeplocks) [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://hexdocs.pm/sleeplocks/)
 
 This library is designed to provide simple locking mechanisms in Erlang/Elixir, similar to
 how spinlocks work in other languages - except using messages to communicate locking.
