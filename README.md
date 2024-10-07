@@ -15,7 +15,7 @@ behaviour via simple processes and message passing.
 
 ### Rebar
 
-Follow the instructons found [here](https://hex.pm/docs/rebar3_usage) to configure your
+Follow the instructions found [here](https://hex.pm/docs/rebar3_usage) to configure your
 Rebar setup to use Hex as a dependency source, then you can grab it directly:
 
 ```erlang
@@ -137,4 +137,3 @@ for idx <- 1..6 do
   end)
 end
 ```
-
