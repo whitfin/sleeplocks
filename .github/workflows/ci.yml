@@ -27,8 +27,8 @@ jobs:
           - 19
           - 18
     steps:
-      - uses: actions/checkout@v2
-      - name: Compile
+      - uses: actions/checkout@v4
+      - name: Run compilation
         run: rebar3 compile
       - name: Run tests
         run: rebar3 do eunit
