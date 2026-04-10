@@ -140,12 +140,11 @@ handle_call(attempt, Caller, Lock) ->
 %% @hidden
 %% Handles the release of a previously acquired lock.
 handle_call(release, {From, _Ref}, #lock{current = Current} = Lock) ->
-    NewLock = case maps:is_key(From, Current) of
-        false -> Lock;
-        true  ->
-            {MonitorRef, NewCurrent} = maps:take(From, Current),
-            erlang:demonitor(MonitorRef),
-            NewCurrent = maps:remove(From, Current),
+    NewLock = case maps:take(From, Current) of
+        error ->
+            Lock;
+        {MonitorRef, NewCurrent} ->
+            erlang:demonitor(MonitorRef, [flush]),
             next_caller(Lock#lock{current = NewCurrent})
     end,
     {reply, ok, NewLock}.
@@ -158,7 +157,8 @@ handle_cast(_Msg, Lock) ->
 %% @hidden
 %% Handles releasing locks if owners crash.
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, #lock{current = Current} = Lock) ->
-    {noreply, Lock#lock{current = maps:remove(Pid, Current)}};
+    NewCurrent = maps:remove(Pid, Current),
+    {noreply, next_caller(Lock#lock{current = NewCurrent})};
 
 %% @hidden
 %% Empty shim to implement behaviour.
@@ -187,7 +187,7 @@ lock_caller({From, _Ref}, #lock{current = Current} = Lock) ->
 %% Attempts to pass a lock to a waiting caller.
 next_caller(#lock{waiting = Waiting} = Lock) ->
     case queue:out(Waiting) of
-        {empty, {[], []}} ->
+        {empty, _} ->
             Lock;
         {{value, Next}, NewWaiting} ->
             gen_server:reply(Next, ok),
@@ -195,15 +195,18 @@ next_caller(#lock{waiting = Waiting} = Lock) ->
             NewLock#lock{waiting = NewWaiting}
     end.
 
-%% Attempts to acquire a lock for a calling process
-try_lock(Caller, #lock{slots = Slots, current = Current} = Lock) ->
-    case maps:size(Current) of
-        S when S == Slots ->
-            {error, unavailable};
-        _ ->
-            {ok, lock_caller(Caller, Lock)}
+%% Attempts to acquire a lock for a calling process.
+try_lock({From, _} = Caller, #lock{slots = Slots, current = Current} = Lock) ->
+    case maps:is_key(From, Current) of
+        true  -> {ok, Lock};
+        false ->
+            case maps:size(Current) of
+                S when S >= Slots ->
+                    {error, unavailable};
+                _ ->
+                    {ok, lock_caller(Caller, Lock)}
+            end
     end.
-
 %% ===================================================================
 %% Private test cases
 %% ===================================================================
